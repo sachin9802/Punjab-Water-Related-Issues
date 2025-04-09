@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Punjab Water Issues Visualization</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+      #charts {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+      }
+      .chart-box {
+        width: 45%;
+        min-width: 400px;
+        height: 400px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Punjab Water-Related Issues Dashboard</h2>
+    <input type="file" id="csvFileInput" accept=".csv" />
+    <div id="charts">
+      <div id="geochart" class="chart-box"></div>
+      <div id="barchart" class="chart-box"></div>
+      <div id="piechart" class="chart-box"></div>
+      <div id="columnchart" class="chart-box"></div>
+    </div>
+
+    <script>
+      google.charts.load("current", {
+        packages: ["geochart", "corechart"]
+      });
+
+      document.getElementById("csvFileInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function (results) {
+            const data = results.data;
+            google.charts.setOnLoadCallback(() => drawCharts(data));
+          }
+        });
+      });
+
+      function drawCharts(data) {
+        // GeoChart
+        const geoData = new google.visualization.DataTable();
+        geoData.addColumn("number", "Latitude");
+        geoData.addColumn("number", "Longitude");
+        geoData.addColumn("string", "District");
+        geoData.addColumn("number", "Groundwater Depletion (m/year)");
+
+        data.forEach(row => {
+          geoData.addRow([
+            parseFloat(row.Latitude),
+            parseFloat(row.Longitude),
+            row.District,
+            parseFloat(row["Groundwater Depletion (m/year)"])
+          ]);
+        });
+
+        const geoChart = new google.visualization.GeoChart(document.getElementById("geochart"));
+        geoChart.draw(geoData, {
+          region: "IN",
+          displayMode: "markers",
+          resolution: "provinces",
+          colorAxis: { colors: ["#a7ffeb", "#004d40"] },
+          backgroundColor: "#f8f8f8",
+          datalessRegionColor: "#eeeeee",
+        });
+
+        // Bar Chart
+        const barDataArray = [["District", "Groundwater Depletion", "Pollution Index"]];
+        data.forEach(row => {
+          barDataArray.push([
+            row.District,
+            parseFloat(row["Groundwater Depletion (m/year)"]),
+            parseFloat(row["Water Pollution Index"])
+          ]);
+        });
+
+        const barData = google.visualization.arrayToDataTable(barDataArray);
+        const barChart = new google.visualization.BarChart(document.getElementById("barchart"));
+        barChart.draw(barData, {
+          title: "Depletion vs Pollution",
+          bars: "horizontal",
+          colors: ["#26a69a", "#ef5350"]
+        });
+
+        // Pie Chart
+        const pieDataArray = [["District", "Agricultural Usage"]];
+        data.forEach(row => {
+          pieDataArray.push([row.District, parseFloat(row["Agricultural Usage (%)"])]);
+        });
+
+        const pieData = google.visualization.arrayToDataTable(pieDataArray);
+        const pieChart = new google.visualization.PieChart(document.getElementById("piechart"));
+        pieChart.draw(pieData, {
+          title: "Agricultural Usage by District",
+          pieHole: 0.4
+        });
+
+        // Column Chart
+        const colDataArray = [["District", "Water Pollution Index", { role: "style" }]];
+        data.forEach(row => {
+          colDataArray.push([
+            row.District,
+            parseFloat(row["Water Pollution Index"]),
+            "#42a5f5"
+          ]);
+        });
+
+        const colData = google.visualization.arrayToDataTable(colDataArray);
+        const columnChart = new google.visualization.ColumnChart(document.getElementById("columnchart"));
+        columnChart.draw(colData, {
+          title: "Water Pollution Index by District",
+          legend: "none"
+        });
+      }
+    </script>
+  </body>
+</html>
